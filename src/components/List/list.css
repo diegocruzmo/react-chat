@@ -1,0 +1,13 @@
+.list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  ::-webkit-scrollbar {
+    width: 10px;
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(35, 7, 65, 0.548);
+    border-radius: 10px;
+  }
+}

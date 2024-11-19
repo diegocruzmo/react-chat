@@ -1,0 +1,109 @@
+.detail {
+  flex: 1;
+  height: 100%;
+  ::-webkit-scrollbar {
+    width: 10px;
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(35, 7, 65, 0.548);
+  }
+}
+
+.detail .user {
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 10px;
+  gap: 20px;
+  border-bottom: 1px solid rgba(56, 55, 55, 0.781);
+}
+
+.detail .user img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.info {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.option .title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.option .photos {
+  display: flex;
+  flex-direction: column;
+}
+
+.option .title {
+  padding: 10px;
+  cursor: pointer;
+  gap: 20px;
+}
+
+.option .title .photos {
+  display: flex;
+  flex-direction: column;
+  gap: 20;
+  margin-top: 20px;
+}
+
+.photos .photoDetail {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.photos .photoItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+}
+
+.photoDetail img {
+  width: 45px;
+  height: 45px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+.photoDetail span {
+  font-style: 14px;
+  color: gray;
+  font-weight: 300;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info .block {
+  padding: 10px;
+  background-color: rgba(71, 14, 133, 0.639);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.info .logout {
+  padding: 10px;
+  background-color: rgba(67, 89, 214, 0.639);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
