@@ -8,16 +8,36 @@ import { FaMicrophone } from 'react-icons/fa'
 import EmojiPicker from 'emoji-picker-react'
 import './chat.css'
 import { useState, useRef, useEffect } from 'react'
+import { onSnapshot, doc, updateDoc, getDoc } from 'firebase/firestore'
+import { db } from '../../lib/firebase'
+import { useChatStore } from '../../lib/chatStore'
+import { useUserStore } from '../../lib/userStore'
+import { arrayUnion } from 'firebase/firestore'
 
 const Chat = () => {
   const [openEmojis, setOpenEmojis] = useState(false)
   const [message, setMessage] = useState('')
+  const [chat, setChat] = useState()
+
+  const { chatId, user, isCurrentUserBlocked, isReceiverBlocked } =
+    useChatStore()
+  const { currentUser } = useUserStore()
 
   const endRef = useRef(null)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
+
+  useEffect(() => {
+    const unSub = onSnapshot(doc(db, 'chats', chatId), (res) => {
+      setChat(res.data())
+    })
+
+    return () => {
+      unSub()
+    }
+  }, [chatId])
 
   const handleOpenEmojis = () => {
     setOpenEmojis(!openEmojis)
@@ -32,17 +52,53 @@ const Chat = () => {
     setMessage(e.target.value)
   }
 
-  const handleSubmit = () => {
-    console.log(message)
+  const handleSubmit = async () => {
+    if (message === '') return
+
+    try {
+      await updateDoc(doc(db, 'chats', chatId), {
+        messages: arrayUnion({
+          senderId: currentUser.id,
+          message,
+          createdAt: new Date()
+        })
+      })
+
+      const userIds = [currentUser.id, user.id]
+
+      userIds.forEach(async (id) => {
+        const userChatsRef = doc(db, 'userchats', id)
+        const userChatsSnapshot = await getDoc(userChatsRef)
+
+        if (userChatsSnapshot.exists()) {
+          const userChatsData = userChatsSnapshot.data()
+
+          const chatIndex = userChatsData.chats.findIndex(
+            (chat) => chat.chatId === chatId
+          )
+
+          userChatsData.chats[chatIndex].lastMessage = message
+          userChatsData.chats[chatIndex].isSeen =
+            id === currentUser.id ? true : false
+          userChatsData.chats[chatIndex].updatedAt = Date.now()
+
+          await updateDoc(userChatsRef, {
+            chats: userChatsData.chats
+          })
+        }
+      })
+    } catch (error) {
+      console.log(error.message)
+    }
   }
 
   return (
     <div className='chat'>
       <div className='top'>
         <div className='user'>
-          <img src='./avatar.jpg' alt='user profile image' />
+          <img src='./default.png' alt='avatar' />
           <div className='texts'>
-            <span>Mark Hoppus</span>
+            <span>{user?.username}</span>
             <p>Lorem ipsum dolor sit amet</p>
           </div>
         </div>
@@ -52,72 +108,23 @@ const Chat = () => {
           <FaInfoCircle />
         </div>
       </div>
-
       <div className='center'>
-        <div className='message'>
-          <img src='./avatar.jpg' alt='avatar' />
-          <div className='texts'>
-            <p>
-              Lorem ipsum dolor sit, amet consectetur adipisicing elit. Odio
-              labore nisi nihil sapiente ea explicabo libero vitae quas sit ad,
-              repellat illo delectus eligendi quaerat molestias! Odit labore nam
-              non.
-            </p>
-            <span>1 min ago</span>
-          </div>
-        </div>
-
-        <div className='message'>
-          <img src='./avatar.jpg' alt='avatar' />
-          <div className='texts'>
-            <p>
-              Lorem ipsum dolor sit, amet consectetur adipisicing elit. Odio
-              labore nisi nihil sapiente ea explicabo libero vitae quas sit ad,
-              repellat illo delectus eligendi quaerat molestias! Odit labore nam
-              non.
-            </p>
-            <span>1 min ago</span>
-          </div>
-        </div>
-
-        <div className='message own'>
-          <div className='texts'>
-            <p>
-              Lorem ipsum dolor sit, amet consectetur adipisicing elit. Odio
-              labore nisi nihil sapiente ea explicabo libero vitae quas sit ad,
-              repellat illo delectus eligendi quaerat molestias! Odit labore nam
-              non.
-            </p>
-            <span>1 min ago</span>
-          </div>
-        </div>
-
-        <div className='message'>
-          <img src='./avatar.jpg' alt='avatar' />
-          <div className='texts'>
-            <p>
-              Lorem ipsum dolor sit, amet consectetur adipisicing elit. Odio
-              labore nisi nihil sapiente ea explicabo libero vitae quas sit ad,
-              repellat illo delectus eligendi quaerat molestias! Odit labore nam
-              non.
-            </p>
-            <span>1 min ago</span>
-          </div>
-        </div>
-
-        <div className='message own'>
-          <div className='texts'>
-            <img src='./mark.jpg' alt='user image' />
-            <p>
-              Lorem ipsum dolor sit, amet consectetur adipisicing elit. Odio
-              labore nisi nihil sapiente ea explicabo libero vitae quas sit ad,
-              repellat illo delectus eligendi quaerat molestias! Odit labore nam
-              non.
-            </p>
-            <span>1 min ago</span>
-          </div>
-          <div ref={endRef}></div>
-        </div>
+        {chat?.messages?.map((message) => (
+          <>
+            <div
+              className={
+                message.senderId === currentUser?.id ? 'message own' : 'message'
+              }
+              key={message?.createdAt?.chats?.seconds}
+            >
+              <img src='./default.png' alt='avatar' />
+              <div className='texts'>
+                <p>{message.message}</p>
+                <span>1 min ago</span>
+              </div>
+            </div>
+          </>
+        ))}
       </div>
 
       <div className='bottom'>
@@ -128,9 +135,14 @@ const Chat = () => {
         </div>
         <input
           type='text'
-          placeholder='Type a message...'
+          placeholder={
+            isCurrentUserBlocked || isReceiverBlocked
+              ? 'You cannot send a message'
+              : 'Type a message...'
+          }
           onChange={handleInputChange}
           value={message}
+          disabled={isCurrentUserBlocked || isReceiverBlocked}
         />
         <div className='emoji'>
           <MdEmojiEmotions onClick={handleOpenEmojis} />
@@ -138,7 +150,11 @@ const Chat = () => {
             <EmojiPicker open={openEmojis} onEmojiClick={handleAddEmoji} />
           </div>
         </div>
-        <button onClick={handleSubmit} className='sendButton'>
+        <button
+          onClick={handleSubmit}
+          className='sendButton'
+          disabled={isCurrentUserBlocked || isReceiverBlocked}
+        >
           Send
         </button>
       </div>
